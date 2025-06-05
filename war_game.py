@@ -15,24 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--auto",
-    action="store_true",
-    help="Prevent request for user action, move game along automatically",
-)
-parser.add_argument(
-    "--output",
-    nargs="?",
-    const="gameplay.log",
-    default=False,
-    help="Auto play game and output the game results to a log file",
-)
-parser.add_argument(
-    "--suit-up", action="store_true", help='run game with "suit up" house rule'
-)
-args = parser.parse_args()
-
 
 def play_round(
     player_1_hand: list,
@@ -43,11 +25,14 @@ def play_round(
     player_2_discard: list,
     deal: int = 1,
     reversed: bool = False,
+    suit_up_active: bool = False,
+    auto_play: bool = False,
+    output: str | bool = False,
 ) -> Optional[int]:
     """
     Single round of gameplay, wars are considered part of the same round, and are recursively called
     """
-    if (not args.auto) and not (args.output):
+    if (not auto_play) and (not output):
         input("Press Enter to play")
 
     for _ in range(0, deal):
@@ -88,7 +73,7 @@ def play_round(
     comparison = compare_cards(
         player_1_played_cards[-1],
         player_2_played_cards[-1],
-        suit_up_active=(args.suit_up and deal != 4),
+        suit_up_active=(suit_up_active and deal != 4),
     )  # check if deal is 4, if it is it's a regular war and you can't enter suit-up
 
     logger.info(
@@ -113,6 +98,10 @@ def play_round(
             player_1_discard,
             player_2_discard,
             deal=4,
+            reversed=False,
+            suit_up_active=False,
+            auto_play=auto_play,
+            output=output,
         )
     elif comparison == 3:
         logger.info("Suit Up!")
@@ -125,12 +114,17 @@ def play_round(
             player_2_discard,
             deal=2,
             reversed=True,
+            suit_up_active=True,
+            auto_play=auto_play,
+            output=output,
         )
 
     return None  # no winner yet
 
 
-def play_war():
+def play_war(
+    auto_play: bool = False, suit_up: bool = False, output: str | bool = False
+):
     """
     Play game
     """
@@ -178,6 +172,24 @@ def play_war():
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--auto",
+        action="store_true",
+        help="Prevent request for user action, move game along automatically",
+    )
+    parser.add_argument(
+        "--output",
+        nargs="?",
+        const="gameplay.log",
+        default=False,
+        help="Auto play game and output the game results to a log file",
+    )
+    parser.add_argument(
+        "--suit-up", action="store_true", help='run game with "suit up" house rule'
+    )
+    args = parser.parse_args()
     if args.output:
         logger.addHandler(
             logging.FileHandler(
@@ -186,4 +198,4 @@ if __name__ == "__main__":
         )
     else:
         logger.addHandler(logging.StreamHandler())
-    play_war()
+    play_war(auto_play=args.auto, suit_up=args.suit_up, output=args.output)
