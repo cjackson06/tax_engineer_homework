@@ -6,6 +6,7 @@ from helper_functions import (
     get_shuffled_deck,
     split_deck,
 )
+from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,15 +35,15 @@ args = parser.parse_args()
 
 
 def play_round(
-    player_1_hand,
-    player_2_hand,
-    player_1_played_cards,
-    player_2_played_cards,
-    player_1_discard,
-    player_2_discard,
-    deal=1,
-    reversed=False,
-):
+    player_1_hand: list,
+    player_2_hand: list,
+    player_1_played_cards: list,
+    player_2_played_cards: list,
+    player_1_discard: list,
+    player_2_discard: list,
+    deal: int = 1,
+    reversed: bool = False,
+) -> Optional[int]:
     """
     Single round of gameplay, wars are considered part of the same round, and are recursively called
     """
@@ -97,10 +98,11 @@ def play_round(
         f"P2: H:{str(len(player_2_hand)).ljust(2)} | D:{str(len(player_2_discard)).ljust(2)} | {player_2_played_cards}{'*' if comparison == 2 else ' '}"
     )
 
+    spoils_of_war = player_1_played_cards + player_2_played_cards
     if comparison == 1:
-        player_1_discard += player_1_played_cards + player_2_played_cards
+        player_1_discard += spoils_of_war
     elif comparison == 2:
-        player_2_discard += player_2_played_cards + player_1_played_cards
+        player_2_discard += spoils_of_war
     elif comparison == 0:
         logger.info("War!")
         return play_round(
@@ -156,17 +158,6 @@ def play_war():
             break
         elif winner == 0:  # for rare case
             logger.info("Draw!")
-            break
-
-        # move cards from discard to hand if hand is empty
-        player_2_wins = check_and_refill_hand(player_1_hand, player_1_discard)
-        if player_2_wins:
-            logger.info(f"Player 2 Wins in {round} rounds!")
-            break
-
-        player_1_wins = check_and_refill_hand(player_2_hand, player_2_discard)
-        if player_1_wins:
-            logger.info(f"Player 1 Wins in {round} rounds!")
             break
 
         round += 1
