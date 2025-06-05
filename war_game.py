@@ -160,6 +160,17 @@ def play_war():
             logger.info("Draw!")
             break
 
+        # move cards from discard to hand if hand is empty
+        player_2_wins = check_and_refill_hand(player_1_hand, player_1_discard)
+        if player_2_wins:
+            logger.info(f"Player 2 Wins in {round} rounds!")
+            break
+
+        player_1_wins = check_and_refill_hand(player_2_hand, player_2_discard)
+        if player_1_wins:
+            logger.info(f"Player 1 Wins in {round} rounds!")
+            break
+
         round += 1
 
     else:
