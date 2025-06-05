@@ -3,6 +3,7 @@ name = "tax-engineer-homework"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "pydantic>=2.11.5",
     "pytest>=8.4.0",
 ]
 
