@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class Player(BaseModel):
     hand: list[str]
     discard: list[str] = []
+    played_cards: list[str] = []
 
     @property
     def no_cards(self):
