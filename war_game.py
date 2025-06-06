@@ -1,7 +1,6 @@
 import logging
 import argparse
 from helper_functions import (
-    check_and_refill_hand,
     compare_cards,
     get_shuffled_deck,
     split_deck,

@@ -59,20 +59,3 @@ def compare_cards(card_1: str, card_2: str, suit_up_active: bool = False) -> int
     elif numeric_1 < numeric_2:
         return 2
     raise Exception(f"Comparison detected something unexpected: {card_1} vs. {card_2}")
-
-
-def check_and_refill_hand(hand, discard):  # TODO: Split into two functions
-    """
-    If hand is empty, move discard pile to hand
-    return True if the player loses
-    """
-    if not any(hand):  # need to refill hand or see if the game ends
-        if not any(
-            discard
-        ):  # out of cards, we know player 2 has cards so player 1 loses
-            return True
-        else:  # pick up discard pile
-            discard.reverse()
-            while any(discard):
-                hand.append(discard.pop())
-    return False
