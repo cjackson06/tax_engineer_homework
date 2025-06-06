@@ -7,6 +7,7 @@ from helper_functions import (
     split_deck,
 )
 from typing import Optional
+from schemas import Player
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,14 +18,10 @@ logger = logging.getLogger()
 
 
 def play_round(
-    player_1_hand: list,
-    player_2_hand: list,
-    player_1_played_cards: list,
-    player_2_played_cards: list,
-    player_1_discard: list,
-    player_2_discard: list,
+    player1: Player,
+    player2: Player,
     deal: int = 1,
-    reversed: bool = False,
+    from_bottom: bool = False,
     suit_up_active: bool = False,
     auto_play: bool = False,
     output: str | bool = False,
@@ -36,69 +33,50 @@ def play_round(
         input("Press Enter to play")
 
     for _ in range(0, deal):
-        if not any(
-            [
-                player_1_hand,
-                player_1_discard,
-                player_2_hand,
-                player_2_discard,
-            ]
-        ):
+        if player1.no_cards and player2.no_cards:
             # Players have played all cards in one long series of wars, just compare on the last card or draw
             # assume suit_up can't activate on this last hand
             return compare_cards(
-                player_1_played_cards[-1],
-                player_2_played_cards[-1],
+                player1.played_cards[-1],
+                player2.played_cards[-1],
                 suit_up_active=False,
             )
-        if not player_1_hand and not player_1_discard:
+
+        if player1.no_cards:
             "Player 2 wins, player 1 has no cards left"
             return 2
-        elif not player_1_hand:
-            player_1_discard.reverse()
-            player_1_hand = player_1_discard.copy()
-            player_1_discard = []
-
-        if not player_2_hand and not player_2_discard:
+        if player2.no_cards:
             "Player 1 wins, player 2 has no cards left"
             return 1
-        elif not player_2_hand:
-            player_2_discard.reverse()
-            player_2_hand = player_2_discard.copy()
-            player_2_discard = []
 
-        player_1_played_cards.append(player_1_hand.pop(0 if reversed else -1))
-        player_2_played_cards.append(player_2_hand.pop(0 if reversed else -1))
+        player1.play_card(from_bottom)
+        player2.play_card(from_bottom)
 
     comparison = compare_cards(
-        player_1_played_cards[-1],
-        player_2_played_cards[-1],
+        player1.played_cards[-1],
+        player2.played_cards[-1],
         suit_up_active=(suit_up_active and deal != 4),
     )  # check if deal is 4, if it is it's a regular war and you can't enter suit-up
 
     logger.info(
-        f"P1: H:{str(len(player_1_hand)).ljust(2)} | D:{str(len(player_1_discard)).ljust(2)} | {player_1_played_cards}{'*' if comparison == 1 else ' '}"
+        f"P1: H:{str(len(player1.hand)).ljust(2)} | D:{str(len(player1.discard)).ljust(2)} | {player1.played_cards}{'*' if comparison == 1 else ' '}"
     )
     logger.info(
-        f"P2: H:{str(len(player_2_hand)).ljust(2)} | D:{str(len(player_2_discard)).ljust(2)} | {player_2_played_cards}{'*' if comparison == 2 else ' '}"
+        f"P2: H:{str(len(player2.hand)).ljust(2)} | D:{str(len(player2.discard)).ljust(2)} | {player2.played_cards}{'*' if comparison == 2 else ' '}"
     )
 
-    spoils_of_war = player_1_played_cards + player_2_played_cards
+    spoils_of_war = player1.played_cards + player2.played_cards
     if comparison == 1:
-        player_1_discard += spoils_of_war
+        player1.discard += spoils_of_war
     elif comparison == 2:
-        player_2_discard += spoils_of_war
+        player2.discard += spoils_of_war
     elif comparison == 0:
         logger.info("War!")
         return play_round(
-            player_1_hand,
-            player_2_hand,
-            player_1_played_cards,
-            player_2_played_cards,
-            player_1_discard,
-            player_2_discard,
+            player1=player1,
+            player2=player2,
             deal=4,
-            reversed=False,
+            from_bottom=False,
             suit_up_active=False,
             auto_play=auto_play,
             output=output,
@@ -106,14 +84,10 @@ def play_round(
     elif comparison == 3:
         logger.info("Suit Up!")
         return play_round(
-            player_1_hand,
-            player_2_hand,
-            player_1_played_cards,
-            player_2_played_cards,
-            player_1_discard,
-            player_2_discard,
+            player1=player1,
+            player2=player2,
             deal=2,
-            reversed=True,
+            from_bottom=True,
             suit_up_active=True,
             auto_play=auto_play,
             output=output,
@@ -132,20 +106,20 @@ def play_war(
     # setup deck and player data objects
     deck = get_shuffled_deck()
     player_1_hand, player_2_hand = split_deck(deck)
-    player_1_discard, player_2_discard = [], []
+    player1 = Player(hand=player_1_hand)
+    player2 = Player(hand=player_2_hand)
     round = 1
 
     while round < 10000:
-        player_1_played_cards, player_2_played_cards = [], []
+        player1.played_cards, player2.played_cards = [], []
         logger.info(f"---- Round {round} ----")
         winner = play_round(
-            player_1_hand,
-            player_2_hand,
-            player_1_played_cards,
-            player_2_played_cards,
-            player_1_discard,
-            player_2_discard,
+            player1,
+            player2,
             deal=1,
+            suit_up_active=suit_up,
+            auto_play=auto_play,
+            output=output,
         )
         if winner:
             logger.info(f"Player {winner} Wins in {round} rounds!")
@@ -155,12 +129,12 @@ def play_war(
             break
 
         # move cards from discard to hand if hand is empty
-        player_2_wins = check_and_refill_hand(player_1_hand, player_1_discard)
+        player_2_wins = player1.no_cards
         if player_2_wins:
             logger.info(f"Player 2 Wins in {round} rounds!")
             break
 
-        player_1_wins = check_and_refill_hand(player_2_hand, player_2_discard)
+        player_1_wins = player2.no_cards
         if player_1_wins:
             logger.info(f"Player 1 Wins in {round} rounds!")
             break
