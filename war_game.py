@@ -41,6 +41,7 @@ def play_round(
                 suit_up_active=False,
             )
 
+        # You lose if you don't have enough cards for deal
         if player1.no_cards:
             "Player 2 wins, player 1 has no cards left"
             return 2
