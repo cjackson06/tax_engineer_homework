@@ -7,6 +7,9 @@ from helper_functions import (
     compare_cards,
 )
 
+from war_game import play_round
+from schemas import Player
+
 
 def test_even_deck_length():
     deck = [1, 2, 3, 4]
@@ -105,3 +108,70 @@ def test_same_value_same_suit():
     """Test when cards have same value and same suit."""
     assert compare_cards("2h", "2h") == 0
     assert compare_cards("2h", "2h", suit_up_active=True) == 0
+
+
+def test_player_initialization():
+    player = Player(hand=["2h", "2c"])
+    assert player.hand == ["2h", "2c"]
+    assert player.discard == []
+    assert player.played_cards == []
+
+    player = Player(hand=["As"], discard=["Ad"], played_cards=["2h"])
+    assert player.hand == ["As"]
+    assert player.discard == ["Ad"]
+    assert player.played_cards == ["2h"]
+
+
+def test_no_cards_property():
+    player = Player(hand=["As", "Ad"])
+    assert player.no_cards is False
+
+    player = Player(hand=[], discard=["As"])
+    assert player.no_cards is False
+
+    player = Player(hand=[], discard=[])
+    assert player.no_cards is True
+
+
+def test_refill_hand():
+    player = Player(hand=[], discard=["As", "Ad"])
+    with pytest.raises(AttributeError):
+        player.__refill_hand()
+
+
+def test_play_card_from_top():
+    player = Player(hand=["As", "2s", "3s"])
+    player.play_card()
+    assert player.hand == ["As", "2s"]
+    assert player.played_cards == ["3s"]
+
+    player = Player(hand=["As"], discard=[])
+    player.play_card()
+    assert player.hand == []
+    assert player.played_cards == ["As"]
+
+
+def test_play_card_from_bottom():
+    # Test playing from bottom
+    player = Player(hand=["As", "2s", "3s"])
+    player.play_card(from_bottom=True)
+    assert player.hand == ["2s", "3s"]
+    assert player.played_cards == ["As"]
+
+
+def test_play_card_with_refill():
+    # Test playing when hand is empty but discard has cards
+    player = Player(hand=[], discard=["As", "2s", "3s"])
+    player.play_card()
+    assert player.hand == [
+        "3s",
+        "2s",
+    ]
+    assert player.discard == []
+    assert player.played_cards == ["As"]
+
+    player = Player(hand=[], discard=["As", "2s", "3s"])
+    player.play_card(from_bottom=True)
+    assert player.hand == ["2s", "As"]
+    assert player.discard == []
+    assert player.played_cards == ["3s"]
