@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from collections import Counter
 from helper_functions import (
     get_shuffled_deck,
@@ -9,6 +10,13 @@ from helper_functions import (
 
 from war_game import play_round
 from schemas import Player
+
+
+@pytest.fixture
+def setup_players():
+    player1 = Player(hand=["2h", "3h", "4h", "5h"])
+    player2 = Player(hand=["2c", "3c", "4c", "5c"])
+    return player1, player2
 
 
 def test_even_deck_length():
@@ -175,3 +183,74 @@ def test_play_card_with_refill():
     assert player.hand == ["2s", "As"]
     assert player.discard == []
     assert player.played_cards == ["3s"]
+
+
+def test_player1_wins_round(setup_players):
+    player1, player2 = setup_players
+    player1.hand = ["Ah"]
+    player2.hand = ["Kc"]
+
+    with patch("war_game.input", return_value=""):
+        with patch("war_game.logger"):
+            result = play_round(player1, player2, auto_play=True)
+
+    assert result is None
+    assert len(player1.discard) == 2
+    assert len(player2.discard) == 0
+    assert player1.played_cards == ["Ah"]
+    assert player2.played_cards == ["Kc"]
+
+
+def test_player2_wins_round(setup_players):
+    player1, player2 = setup_players
+    player1.hand = ["Jh"]
+    player2.hand = ["Qc"]
+
+    with patch("war_game.input", return_value=""):
+        with patch("war_game.logger"):
+            result = play_round(player1, player2, auto_play=True)
+
+    assert result is None
+    assert len(player1.discard) == 0
+    assert len(player2.discard) == 2
+    assert player1.played_cards == ["Jh"]
+    assert player2.played_cards == ["Qc"]
+
+
+def test_player1_no_cards(setup_players):
+    player1, player2 = setup_players
+    # Player1 has no cards
+    player1.hand = []
+    player2.hand = ["5h"]
+
+    with patch("war_game.input", return_value=""):
+        with patch("war_game.logger"):
+            result = play_round(player1, player2, auto_play=True)
+
+    assert result == 2
+
+
+def test_player2_no_cards(setup_players):
+    player1, player2 = setup_players
+    player1.hand = ["5h"]
+    player2.hand = []
+
+    with patch("war_game.input", return_value=""):
+        with patch("war_game.logger"):
+            result = play_round(player1, player2, auto_play=True)
+
+    assert result == 1
+
+
+def test_both_players_no_cards_but_have_played_cards(setup_players):
+    player1, player2 = setup_players
+    player1.hand = []
+    player2.hand = []
+    player1.played_cards = ["Ah"]
+    player2.played_cards = ["Kh"]
+
+    with patch("war_game.input", return_value=""):
+        with patch("war_game.logger"):
+            result = play_round(player1, player2, auto_play=True)
+
+    assert result == 1
